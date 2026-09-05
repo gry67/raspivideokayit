@@ -1,16 +1,19 @@
 import time
 import cv2
-from picamera2 import Picamera2
+
 
 # ==========================================
 # SİSTEM MODU ŞALTERİ
 # ==========================================
-USE_PIXHAWK = True
+USE_PIXHAWK = False
 
 if USE_PIXHAWK:
     from MavlinkNode import MavlinkNode
+    from picamera2 import Picamera2
 
 from VideoRecorder import VideoRecorder
+from VisionProcessor import VisionProcessor as vp
+
 
 
 KAMERA_YENIDEN_DENE_SURESI = 3
@@ -57,6 +60,7 @@ def main():
     recorder = None
     uav_link = None
     recording_active = False
+    goruntu_isleyici = vp()
 
     try:
         # ==========================================
@@ -96,6 +100,9 @@ def main():
             # ------------------------------------------
             try:
                 frame = picam2.capture_array()
+
+                tespitler = goruntu_isleyici.detect_all(frame=frame)
+                frame = goruntu_isleyici.draw_detections(frame=frame,detections=tespitler)
 
                 if frame is None:
                     print("[UYARI] Kameradan frame alınamadı.")
