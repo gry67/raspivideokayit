@@ -120,6 +120,7 @@ class VisionProcessor:
 
 
     def capture_frame(self) -> Optional[np.ndarray]:
+        """FOTOĞRAF ÇEKER FRAME DÖNDÜRÜR"""
         try:
             if self.use_picamera2 and self.picam is not None:
                 rgb_frame = self.picam.capture_array()
