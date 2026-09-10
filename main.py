@@ -61,6 +61,7 @@ def main():
     uav_link = None
     recording_active = False
     goruntu_isleyici = vp()
+    mavi_servo_calisti_mi = False
 
     try:
         # ==========================================
@@ -103,6 +104,11 @@ def main():
 
                 tespitler = goruntu_isleyici.detect_all(frame=frame)
                 frame = goruntu_isleyici.draw_detections(frame=frame,detections=tespitler)
+
+                mavi_guven_orani = tespitler["blue"][0].confidence if tespitler["blue"] else 0
+                kirmizi_guven_orani = tespitler["red"][0].confidence if tespitler["red"] else 0  
+
+
 
                 if frame is None:
                     print("[UYARI] Kameradan frame alınamadı.")
@@ -175,6 +181,15 @@ def main():
             if recording_active:
                 try:
                     recorder.write_frame(frame)
+
+                    mavi_goruldu = bool(tespitler["blue"])
+                    kirmizi_goruldu = bool(tespitler["red"])
+
+                    if mavi_goruldu and mavi_guven_orani > 85 and mavi_servo_calisti_mi == False:
+                        # HEDEF GÖRÜLDÜ
+                        uav_link.set_servo_pwm(6, 1500)
+                        mavi_servo_calisti_mi = True
+                    
                 except Exception as e:
                     print(f"[HATA] Video frame'i yazılamadı: {e}")
 

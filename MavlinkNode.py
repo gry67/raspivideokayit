@@ -68,3 +68,25 @@ class MavlinkNode:
 
         self.latest_rc_state = (chan_val > threshold)
         return self.latest_rc_state
+
+
+
+
+def set_servo_pwm(self, servo, pwm):
+    """
+    Belirtilen servoyu istenen PWM değerine çeker.
+
+    servo : Servo çıkış numarası (1, 2, 3, ...)
+    pwm   : PWM değeri (örn. 1000, 1500, 2000)
+    """
+
+    self.master.mav.command_long_send(
+        self.master.target_system,
+        self.master.target_component,
+        mavutil.mavlink.MAV_CMD_DO_SET_SERVO,
+        0,
+        servo,   # param1: Servo numarası
+        pwm,     # param2: PWM
+        0, 0, 0, 0, 0
+    )
+
