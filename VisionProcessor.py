@@ -57,8 +57,8 @@ class VisionProcessor:
         self.use_picamera2 = False
         self.force_usb = force_usb
         self.is_running = False
-        if config.SAVE_DEBUG_IMAGES:
-            os.makedirs(config.DEBUG_IMAGE_DIR, exist_ok=True)
+        # if config.SAVE_DEBUG_IMAGES:
+        #     os.makedirs(config.DEBUG_IMAGE_DIR, exist_ok=True)
 
 
 

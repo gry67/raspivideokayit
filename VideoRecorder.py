@@ -7,7 +7,7 @@ class VideoRecorder:
     Sadece video kaydının başlatılması, frame yazılması ve güvenli sonlandırılmasından sorumlu sınıf.
     """
 
-    def __init__(self, kayit_klasoru="/home/guray/Desktop", fps=30, resolution=(640, 480)):
+    def __init__(self, kayit_klasoru="/home/guray/Desktop", fps=30, resolution=(1280, 720)):
         self.kayit_klasoru = kayit_klasoru
         self.fps = fps
         self.resolution = resolution

@@ -1,11 +1,12 @@
 import time
 import cv2
+from logTut import logTut
 
 
 # ==========================================
 # SİSTEM MODU ŞALTERİ
 # ==========================================
-USE_PIXHAWK = False
+USE_PIXHAWK = True
 
 if USE_PIXHAWK:
     from MavlinkNode import MavlinkNode
@@ -62,6 +63,9 @@ def main():
     recording_active = False
     goruntu_isleyici = vp()
     mavi_servo_calisti_mi = False
+    mavi_gorulen_frame_sayisi  = 0
+    kirmizi_gorulen_frame_sayisi = 0
+    log = logTut()
 
     try:
         # ==========================================
@@ -73,7 +77,7 @@ def main():
         cam_height = 480
 
         recorder = VideoRecorder(
-        kayit_klasoru="/home/guray/Desktop",
+        kayit_klasoru="/home/atlas/Desktop",
         fps=30,
         resolution=(cam_width, cam_height)
         )
@@ -84,11 +88,11 @@ def main():
         RC_RECORD_CHANNEL = 8
 
         if USE_PIXHAWK:
-            print("[INFO] MOD: PIXHAWK AKTİF.")
-            print("[INFO] Pixhawk/MAVLink bağlantısı bekleniyor...")
+            log.info("[INFO] MOD: PIXHAWK AKTİF.")
+            log.info("[INFO] Pixhawk/MAVLink bağlantısı bekleniyor...")
         else:
-            print("[INFO] MOD: BAĞIMSIZ (STANDALONE). Pixhawk devre dışı.")
-            print(f"[*] Kayıt doğrudan başlatılıyor: {VIDEO_FILE}")
+            log.info("[INFO] MOD: BAĞIMSIZ (STANDALONE). Pixhawk devre dışı.")
+            log.info(f"[*] Kayıt doğrudan başlatılıyor: {VIDEO_FILE}")
             recorder.start()
             recording_active = True
 
@@ -111,13 +115,13 @@ def main():
 
 
                 if frame is None:
-                    print("[UYARI] Kameradan frame alınamadı.")
+                    log.info("[UYARI] Kameradan frame alınamadı.")
                     time.sleep(0.1)
                     continue
 
             except Exception as e:
-                print(f"[HATA] Kamera çalışırken hata oluştu: {e}")
-                print(f"[INFO] Kamera yeniden başlatılmaya çalışılıyor...")
+                log.info(f"[HATA] Kamera çalışırken hata oluştu: {e}")
+                log.info(f"[INFO] Kamera yeniden başlatılmaya çalışılıyor...")
 
                 try:
                     picam2.stop()
@@ -138,16 +142,16 @@ def main():
             if USE_PIXHAWK:
                 if uav_link is None:
                     try:
-                        print("[INFO] Pixhawk'a MAVLink bağlantısı kuruluyor...")
+                        log.info("[INFO] Pixhawk'a MAVLink bağlantısı kuruluyor...")
                         uav_link = MavlinkNode(
                             connection_string='/dev/ttyACM0',
                             baudrate=57600
                         )
-                        print("[INFO] MAVLink bağlantısı başarıyla kuruldu.")
+                        log.info("[INFO] MAVLink bağlantısı başarıyla kuruldu.")
 
                     except Exception as e:
-                        print(f"[HATA] MAVLink bağlantısı kurulamadı: {e}")
-                        print(f"[INFO] {MAVLINK_YENIDEN_DENE_SURESI} saniye sonra tekrar denenecek...")
+                        log.info(f"[HATA] MAVLink bağlantısı kurulamadı: {e}")
+                        log.info(f"[INFO] {MAVLINK_YENIDEN_DENE_SURESI} saniye sonra tekrar denenecek...")
                         uav_link = None
                         time.sleep(MAVLINK_YENIDEN_DENE_SURESI)
                         continue
@@ -169,8 +173,8 @@ def main():
                         recording_active = False
 
                 except Exception as e:
-                    print(f"[HATA] MAVLink/RC iletişiminde hata oluştu: {e}")
-                    print("[INFO] MAVLink bağlantısı sıfırlanıyor, tekrar bağlanılacak...")
+                    log.info(f"[HATA] MAVLink/RC iletişiminde hata oluştu: {e}")
+                    log.info("[INFO] MAVLink bağlantısı sıfırlanıyor, tekrar bağlanılacak...")
                     uav_link = None
                     time.sleep(MAVLINK_YENIDEN_DENE_SURESI)
                     continue
@@ -181,43 +185,52 @@ def main():
             if recording_active:
                 try:
                     recorder.write_frame(frame)
+        
+                except Exception as e:
+                    log.info(f"[HATA] Video frame'i yazılamadı: {e}")                    
 
+                try:
                     mavi_goruldu = bool(tespitler["blue"])
                     kirmizi_goruldu = bool(tespitler["red"])
 
-                    if mavi_goruldu and mavi_guven_orani > 85 and mavi_servo_calisti_mi == False:
-                        # HEDEF GÖRÜLDÜ
-                        uav_link.set_servo_pwm(6, 1500)
-                        mavi_servo_calisti_mi = True
+                    if mavi_goruldu and mavi_guven_orani > 85:
+                        #Hedef Görüldü
+                        mavi_gorulen_frame_sayisi+=1
+
+                        if mavi_gorulen_frame_sayisi >10:
+                            uav_link.set_servo_pwm(6, 1900)
+                            mavi_servo_calisti_mi = True
                     
                 except Exception as e:
-                    print(f"[HATA] Video frame'i yazılamadı: {e}")
+                    log.info(f"[HATA] mavi yada kirmizi gorulduyse atis yapan kodun olduğu yerde sikinti var: {e} \n" +
+                             f"mavi_goruldu: {mavi_goruldu}\n" + f"kirmizi_goruldu: {kirmizi_goruldu} \n" +
+                               f"mavi_gorulen_frame_sayisi: {mavi_gorulen_frame_sayisi}")
 
     except KeyboardInterrupt:
-        print("\n[INFO] Kod terminalden (Ctrl+C) durduruldu.")
+        log.info("\n[INFO] Kod terminalden (Ctrl+C) durduruldu.")
 
     except Exception as e:
-        print(f"\n[!] Beklenmeyen kritik hata: {e}")
+        log.info(f"\n[!] Beklenmeyen kritik hata: {e}")
 
     finally:
         if recorder is not None:
             try:
                 recorder.stop()
             except Exception as e:
-                print(f"[UYARI] Recorder kapatılırken hata: {e}")
+                log.info(f"[UYARI] Recorder kapatılırken hata: {e}")
 
         if picam2 is not None:
             try:
                 picam2.stop()
             except Exception as e:
-                print(f"[UYARI] Kamera durdurulurken hata: {e}")
+                log.info(f"[UYARI] Kamera durdurulurken hata: {e}")
 
             try:
                 picam2.close()
             except Exception:
                 pass
 
-        print("[INFO] ATLAS güvenli şekilde kapatıldı.")
+        log.info("[INFO] ATLAS güvenli şekilde kapatıldı.")
 
 
 if __name__ == '__main__':
